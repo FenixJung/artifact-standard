@@ -1,0 +1,73 @@
+<!--
+  언어 토글 (한글 · EN). 이 게임 관련 아티팩트는 모두 이걸 써요 (Jira PB-116).
+  Language toggle (Korean · English) shared by every Pet Battle artifact.
+
+  쓰는 법 / How to use
+  - 글은 짝으로 써요: <p lang="ko">…</p><p lang="en">…</p>, 짧은 건 <span lang="ko">…</span><span lang="en">…</span>.
+    class="ko" / class="en" 짝도 똑같이 동작해요 (진단 문서 방식).
+    lang이 없는 요소는 두 언어에서 다 보여요. Elements without lang show in both languages.
+  - 스크립트가 만드는 글은 document.documentElement.dataset.lang ('ko' | 'en')을 보고 고르고,
+    document의 'claude-artifact:lang' 이벤트를 받으면 다시 그려요.
+  - 기본은 한국어. 고른 언어는 그 브라우저에 기억해요 (localStorage 'claude-artifact.lang').
+  - 색은 페이지 토큰에 맞춰요: --lt-bg, --lt-line, --lt-fg, --lt-on, --lt-on-fg 를 :root(밝은 테마)와 어두운 테마 블록에 정의해요.
+    아래 기본값은 어두운 화면용이에요.
+  - 탭 제목을 언어마다 바꾸려면 .lang-toggle에 data-title-ko / data-title-en 을 넣어요.
+  - 스타일은 <style> 안에, 토글 마크업은 body 맨 앞쪽에, 스크립트는 토글 바로 뒤에 둬요.
+
+  용어 / Glossary (영어 표기는 사용자 확인 전 임시인 것도 있어요)
+  펫 배틀 (가칭) = Pet Battle (working title) · 기획서 = concept doc · 복실이 = Boksiri (임시)
+  알 = Egg · 아기 = Baby · 노멀 모드 = Normal Mode · 배틀 모드 = Battle Mode · 진화 = evolve · 해금 = unlock
+  희귀도 = rarity: 일반 Common · 고급 Uncommon · 희귀 Rare · 영웅 Epic · 전설 Legendary · 빛나는 펫 = Shiny
+  스탯: 끈기 GRIT · 디버깅 DEBUG · 방화벽 FIREWALL · 속도 SPEED · 알고리즘 ALGORITHM · 혼돈 CHAOS
+  커넥터 = connector · 승인 = approval · 임시 그림 = placeholder art · 프로토타입 = prototype
+-->
+<style>
+:root[data-lang="en"] [lang="ko"]:not(html),
+:root:not([data-lang="en"]) [lang="en"]:not(html) { display: none !important; }
+/* class="ko" / class="en" pairs (the review document convention) switch the same way */
+:root[data-lang="en"] .ko:not(html),
+:root:not([data-lang="en"]) .en:not(html) { display: none !important; }
+.lang-toggle {
+  position: fixed; z-index: 1000;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  right: max(12px, env(safe-area-inset-right, 0px));
+  display: flex; gap: 2px; padding: 3px; border-radius: 999px;
+  background: var(--lt-bg, rgba(20, 16, 36, .72)); border: 1px solid var(--lt-line, rgba(255, 255, 255, .16));
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  font: 600 12.5px/1 system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
+}
+.lang-toggle button {
+  appearance: none; border: 0; margin: 0; background: transparent; cursor: pointer; font: inherit;
+  padding: 7px 12px; border-radius: 999px; color: var(--lt-fg, rgba(245, 240, 255, .72));
+}
+.lang-toggle button[aria-pressed="true"] { background: var(--lt-on, #f5f0ff); color: var(--lt-on-fg, #1a0e15); }
+.lang-toggle button:focus-visible { outline: 2px solid var(--lt-on, #f5f0ff); outline-offset: 2px; }
+</style>
+<div class="lang-toggle" role="group" aria-label="Language · 언어">
+  <button type="button" data-set-lang="ko">한글</button>
+  <button type="button" data-set-lang="en">EN</button>
+</div>
+<script>
+(function () {
+  var KEY = 'claude-artifact.lang', root = document.documentElement;
+  var bar = document.querySelector('.lang-toggle');
+  function apply(l) {
+    root.dataset.lang = l;
+    root.lang = l;
+    document.querySelectorAll('[data-set-lang]').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.setLang === l));
+    });
+    var t = bar && bar.dataset[l === 'en' ? 'titleEn' : 'titleKo'];
+    if (t) document.title = t;
+    try { localStorage.setItem(KEY, l); } catch (e) {}
+    document.dispatchEvent(new CustomEvent('claude-artifact:lang', { detail: l }));
+  }
+  var saved = null;
+  try { saved = localStorage.getItem(KEY); } catch (e) {}
+  apply(saved === 'en' ? 'en' : 'ko');
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-set-lang]');
+    if (b) apply(b.dataset.setLang);
+  });
+})();
+</script>
